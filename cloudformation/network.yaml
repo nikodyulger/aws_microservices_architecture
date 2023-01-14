@@ -1,0 +1,108 @@
+Description: 
+  Definition of the network resources such as VPC, Subnets, Route Tables, Internet and NAT Gateways
+
+Parameters:
+
+  Environment: 
+    Description: Choose the environment 
+    ConstraintDescription: Select one option from the drop down menu
+    Type: String 
+    AllowedValues:
+      - dev
+      - stg 
+      - prod
+
+  VpcCIDR:
+    Description: IP range (CIDR) for VPC
+    Default: 192.168.0.0/16
+    Type: String
+    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
+  
+  PublicSubnetACIDR:
+    Description: IP range (CIDR) for Public Subnet A 
+    Default: 192.168.10.0/24
+    Type: String
+    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
+
+  PublicSubnetBCIDR:
+    Description: IP range (CIDR) for Public Subnet B
+    Default: 192.168.11.0/24
+    Type: String
+    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
+
+  PrivateSubnetACIDR:
+    Description: IP range (CIDR) for Private Subnet A 
+    Default: 192.168.20.0/24
+    Type: String
+    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
+
+  PrivateSubnetBCIDR:
+    Description: IP range (CIDR) for Private Subnet B
+    Default: 192.168.21.0/24
+    Type: String
+    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
+
+Resources:
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnetACIDR
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnetBCIDR
+      AvailabilityZone: !Select 
+        - 1
+        - Fn::GetAZs: !Ref AWS::Region
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnetACIDR
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnetÇBCIDR
+      AvailabilityZone: !Select 
+        - 1
+        - Fn::GetAZs: !Ref AWS::Region
+
+Outputs:
+
+  VPC: 
+    Description: Reference to VPC
+    Value: !Ref VPC
+
+  PublicSubnetA: 
+    Description: Reference to Public Subnet A 
+    Value: !Ref PublicSubnetA
+
+  PublicSubnetB: 
+    Description: Reference to Public Subnet B
+    Value: !Ref PublicSubnetB
+
+  PrivateSubnetA:
+    Description: Reference to Private Subnet A
+    Value: !Ref PrivateSubnetA
+  
+  PrivateSubnetB:
+    Description: Reference to Private Subnet B
+    Value: !Ref PrivateSubnetB
