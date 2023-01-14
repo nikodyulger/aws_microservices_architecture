@@ -80,10 +80,43 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !Ref PrivateSubnetÇBCIDR
+      CidrBlock: !Ref PrivateSubnetBCIDR
       AvailabilityZone: !Select 
         - 1
         - Fn::GetAZs: !Ref AWS::Region
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  IGAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  NatGatewayAEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: IGAttachment
+    Properties:
+      Domain: vpc
+
+  NatGatewayBEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: IGAttachment
+    Properties:
+      Domain: vpc
+
+  NatGatewayA:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayAEIP.AllocationId
+      SubnetId: !Ref PublicSubnetA
+
+  NatGatewayB:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayBEIP.AllocationId
+      SubnetId: !Ref PublicSubnetB
 
 Outputs:
 
@@ -99,6 +132,10 @@ Outputs:
     Description: Reference to Public Subnet B
     Value: !Ref PublicSubnetB
 
+  PublicSubnets:
+    Description: List of Public Subnets
+    Value: !Join [ ",", [ !Ref PublicSubnetA, !Ref PublicSubnetB ]]
+
   PrivateSubnetA:
     Description: Reference to Private Subnet A
     Value: !Ref PrivateSubnetA
@@ -106,3 +143,7 @@ Outputs:
   PrivateSubnetB:
     Description: Reference to Private Subnet B
     Value: !Ref PrivateSubnetB
+
+  PrivateSubnets:
+    Description: List of Private Subnets
+    Value: !Join [ ",", [ !Ref PrivateSubnetA, !Ref PrivateSubnetB ]]
