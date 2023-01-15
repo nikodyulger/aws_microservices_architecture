@@ -1,0 +1,76 @@
+Description: 
+  Defintion of the public facing Application Load Balancer
+
+Parameters:
+
+  Environment: 
+    Description: Choose the environment 
+    ConstraintDescription: Select one option from the drop down menu
+    Type: String 
+    AllowedValues:
+      - dev
+      - stg 
+      - prod
+
+Resources:
+
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${Environment}-alb
+      Scheme: internet-facing
+      Subnets: !ImportValue ${Environment}-public-subnets
+      LoadBalancerAttributes:
+      - Key: idle_timeout.timeout_seconds
+        Value: 30
+  
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: ALB
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - TargetGroupArn: !Ref ALBTargetGroup
+          Type: forward
+
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${Environment}-target-group"
+      HealthCheckIntervalSeconds: 6
+      HealthCheckPath: "/"
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: !ImportValue ${Environment}-vpc
+
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the public facing load balancer
+      VpcId: !ImportValue ${Environment}-vpc
+      SecurityGroupIngress:
+          - CidrIp: 0.0.0.0/0
+            IpProtocol: -1
+
+Outputs:
+  LoadBalancerDNSName:
+    Description: Application Load Balancer DNS name
+    Value: !GetAtt ALB.DNSName
+
+  LoadBalancerTargetGroupFullName:
+    Description: Application Load Balancer target group
+    Value: !GetAtt LoadBalancerTargetGroup.TargetGroupFullName
+    Export:
+      Name: !Sub "${Environment}-alb-target-group-full-name"
+
+  LoadBalancerTargetGroupArn:
+    Description: Application Load Balancer target group Arn
+    Value: !Ref ALBTargetGroup
+    Export:
+      Name: !Sub "${Environment}-alb-target-group-arn"
