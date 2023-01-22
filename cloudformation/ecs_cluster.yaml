@@ -1,5 +1,5 @@
 Description:
-  Defintion of ECS cluser hosted by EC2 instances
+  Definition of ECS cluser hosted by EC2 instances
 
 Parameters:
 
@@ -15,23 +15,23 @@ Parameters:
 
   DesiredCapacity:
     Type: Number
-    Default: 3
+    Default: 1
     Description: Number of EC2 instances to launch in your ECS cluster.
 
   MinSize:
     Type: Number
     Default: 1
-    Description: Minimum number of EC2 instances that can be launched in your ECS cluster.
+    Description: Minimum number of EC2 instances that can be launched in the ECS cluster.
 
   MaxSize:
     Type: Number
-    Default: 6
-    Description: Maximum number of EC2 instances that can be launched in your ECS cluster.
+    Default: 3
+    Description: Maximum number of EC2 instances that can be launched in the ECS cluster.
 
   ECSAMI:
     Description: AMI ID
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 
 
   InstanceType:
     Description: EC2 instance type
@@ -46,12 +46,20 @@ Resources:
 
   ECSAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+      - LaunchTemplate
     Properties:
-      VPCZoneIdentifier: !ImportValue ${Environment}-public-subnets
+      VPCZoneIdentifier: 
+        - Fn::ImportValue:
+            !Sub ${Environment}-private-subnetA
+        - Fn::ImportValue:
+            !Sub ${Environment}-private-subnetB
       MinSize: !Ref MinSize
       MaxSize: !Ref MaxSize
       DesiredCapacity: !Ref DesiredCapacity
-      TargetGroupARNs: !ImportValue ${Environment}-alb
+      TargetGroupARNs: 
+        - Fn::ImportValue:
+            !Sub ${Environment}-alb-target-group-arn
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
@@ -61,19 +69,22 @@ Resources:
 
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
+    DependsOn:
+      - EC2InstanceProfile
     Properties: 
       LaunchTemplateName: !Sub ${Environment}-ecs-hosts-launch-template
       LaunchTemplateData:
         ImageId: !Ref ECSAMI
         InstanceType: !Ref InstanceType
-        IamIntanceProfile: 
+        IamInstanceProfile: 
           Arn: !GetAtt  [EC2InstanceProfile, 'Arn']
-        SecurityGroupsIds: 
-          - !Ref EcsHostSecurityGroup
+        SecurityGroupIds: 
+          - !Ref EcsHostSG
 
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
+      InstanceProfileName: ECSHost
       Path: /
       Roles: [!Ref 'EC2Role']
 
@@ -108,27 +119,31 @@ Resources:
             Resource: '*'
 
 # move to a specific template with all security groups together
-  EcsHostSecurityGroup:
+  EcsHostSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Access to the ECS hosts that run containers
-      VpcId: !ImportValue ${Environment}-vpc
+      VpcId: 
+        Fn::ImportValue:
+          !Sub ${Environment}-vpc
 
-  EcsSecurityGroupIngressFromPublicALB:
+  EcsSGInALB:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: Ingress from the internet facing ALB
-      GroupId: !Ref 'EcsHostSecurityGroup'
+      GroupId: !Ref EcsHostSG
       IpProtocol: -1
-      SourceSecurityGroupId: !ImportValue ${Environment}-alb-sg
+      SourceSecurityGroupId: 
+        Fn::ImportValue:
+          !Sub ${Environment}-alb-sg
 
-  EcsSecurityGroupIngressFromSelf:
+  EcsSGInSelf:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       Description: Ingress from other hosts in the same security group
-      GroupId: !Ref 'EcsHostSecurityGroup'
+      GroupId: !Ref EcsHostSG
       IpProtocol: -1
-      SourceSecurityGroupId: !Ref 'EcsHostSecurityGroup'
+      SourceSecurityGroupId: !Ref EcsHostSG
 
 Outputs:
 
@@ -136,4 +151,4 @@ Outputs:
     Description: A reference to the ECS Cluster
     Value: !Ref ECSCluster
     Export:
-      Name: !Sub "${Environment}-ecs-cluster"
+      Name: !Sub ${Environment}-ecs-cluster
