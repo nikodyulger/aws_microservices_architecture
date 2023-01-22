@@ -184,27 +184,41 @@ Outputs:
   VPC: 
     Description: Reference to VPC
     Value: !Ref VPC
+    Export:
+      Name: !Sub ${Environment}-vpc
 
   PublicSubnetA: 
     Description: Reference to Public Subnet A 
     Value: !Ref PublicSubnetA
+    Export:
+      Name: !Sub ${Environment}-public-subnetBA
 
   PublicSubnetB: 
     Description: Reference to Public Subnet B
     Value: !Ref PublicSubnetB
+    Export:
+      Name: !Sub ${Environment}-public-subnetB
 
   PublicSubnets:
     Description: List of Public Subnets
     Value: !Join [ ",", [ !Ref PublicSubnetA, !Ref PublicSubnetB ]]
+    Export:
+      Name: !Sub ${Environment}-public-subnets
 
   PrivateSubnetA:
     Description: Reference to Private Subnet A
     Value: !Ref PrivateSubnetA
+    Export:
+      Name: !Sub ${Environment}-private-subnetA
   
   PrivateSubnetB:
     Description: Reference to Private Subnet B
     Value: !Ref PrivateSubnetB
+    Export:
+      Name: !Sub ${Environment}-private-subnetB
 
   PrivateSubnets:
     Description: List of Private Subnets
     Value: !Join [ ",", [ !Ref PrivateSubnetA, !Ref PrivateSubnetB ]]
+    Export:
+      Name: !Sub ${Environment}-private-subnets
